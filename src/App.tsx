@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import StatusPage from './pages/StatusPage';
 import SignUpPage from './pages/teacher/auth/SignUpPage';
 import NotFoundPage from './pages/NotFoundPage';
-import { useTheme } from './hooks/useTheme';
 
 function App() {
   return (
@@ -18,8 +17,6 @@ function App() {
 }
 
 function HomePage() {
-  const { theme } = useTheme();
-  
   return (
     <div className="min-h-screen bg-gray-900 dark:bg-gray-950 flex items-center justify-center p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center max-w-md w-full">

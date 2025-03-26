@@ -84,36 +84,22 @@ const SignUpPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
-      const response = await api.post('/auth/sign-up', formData);
-      
+      await api.post('/auth/sign-up', formData);
       setNotification({
         type: 'success',
-        message: 'Регистрация успешна! Перенаправляем...'
+        message: 'Регистрация успешно завершена!'
       });
-
-      // Перенаправление после успешной регистрации
       setTimeout(() => {
-        navigate('/teacher/auth/sign-in');
+        navigate('/');
       }, 2000);
-
-    } catch (error: any) {
-      let errorMessage = 'Произошла ошибка при регистрации';
-      
-      if (error.response) {
-        // Получаем сообщение об ошибке от сервера
-        errorMessage = error.response.data?.message || errorMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
+    } catch (error) {
       setNotification({
         type: 'error',
-        message: errorMessage
+        message: error instanceof Error ? error.message : 'Произошла ошибка при регистрации'
       });
     } finally {
       setIsLoading(false);
