@@ -15,8 +15,6 @@ FROM nginx:stable-alpine AS production
 # Копируем собранный билд в директорию nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем конфигурацию nginx (опционально, можно не копировать)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
