@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import StatusPage from './pages/StatusPage';
 import SignUpPage from './pages/teacher/auth/SignUpPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -11,6 +11,7 @@ function App() {
         <Route path="/teacher/auth/sign-up" element={<SignUpPage />} />
         <Route path="/" element={<HomePage />} />
         <Route path="/404" element={<NotFoundPage />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
     </Router>
   );
