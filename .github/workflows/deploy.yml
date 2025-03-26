@@ -42,4 +42,4 @@ jobs:
             docker pull $IMAGE_NAME
             docker stop zinhack_front || true
             docker rm zinhack_front || true
-            docker run -d --name zinhack_front -p 80:80 $IMAGE_NAME
+            docker run -d --name zinhack_front -p 6610:80 $IMAGE_NAME
