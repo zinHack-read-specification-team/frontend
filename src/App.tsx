@@ -1,12 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import StatusPage from './pages/StatusPage';
 import SignUpPage from './pages/teacher/auth/SignUpPage';
+import SignInPage from './pages/teacher/auth/SignInPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/teacher/DashboardPage';
 import Header from './components/Header';
 import LandingHeader from './components/LandingHeader';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -15,13 +17,23 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingHeader />} />
           <Route path="/status" element={<LandingHeader />} />
+          <Route path="/teacher/auth/sign-in" element={<LandingHeader />} />
+          <Route path="/teacher/auth/sign-up" element={<LandingHeader />} />
           <Route path="*" element={<Header />} />
         </Routes>
         <main className="flex-grow">
           <Routes>
             <Route path="/status" element={<StatusPage />} />
             <Route path="/teacher/auth/sign-up" element={<SignUpPage />} />
-            <Route path="/teacher" element={<DashboardPage />} />
+            <Route path="/teacher/auth/sign-in" element={<SignInPage />} />
+            <Route
+              path="/teacher"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/" element={<HomePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
