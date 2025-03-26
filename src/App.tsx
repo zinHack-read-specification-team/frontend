@@ -14,6 +14,7 @@ function App() {
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
         <Routes>
           <Route path="/" element={<LandingHeader />} />
+          <Route path="/status" element={<LandingHeader />} />
           <Route path="*" element={<Header />} />
         </Routes>
         <main className="flex-grow">
