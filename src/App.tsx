@@ -11,6 +11,7 @@ import Header from './components/Header';
 import LandingHeader from './components/LandingHeader';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import LinkStatsPage from './pages/teacher/LinkStatsPage';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/teacher/links/stat" element={<LinkStatsPage />} />
             <Route path="/school/games/fire" element={<FireGame />} />
             <Route path="/" element={<HomePage />} />
             <Route path="*" element={<NotFoundPage />} />
