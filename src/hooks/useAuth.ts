@@ -17,6 +17,7 @@ export const useAuth = () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setIsLoading(false);
+      navigate('/teacher/auth/sign-in', { state: { error: 'Требуется авторизация' } });
       return false;
     }
 
@@ -36,12 +37,22 @@ export const useAuth = () => {
         localStorage.removeItem('token');
         setUser(null);
         setIsLoading(false);
+        navigate('/teacher/auth/sign-in', { 
+          state: { 
+            error: response.status === 401 
+              ? 'Сессия истекла. Пожалуйста, войдите снова.' 
+              : 'Произошла ошибка при проверке авторизации' 
+          } 
+        });
         return false;
       }
     } catch (error) {
       localStorage.removeItem('token');
       setUser(null);
       setIsLoading(false);
+      navigate('/teacher/auth/sign-in', { 
+        state: { error: 'Произошла ошибка при подключении к серверу' } 
+      });
       return false;
     }
   };

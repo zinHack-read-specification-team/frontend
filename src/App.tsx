@@ -5,6 +5,7 @@ import SignInPage from './pages/teacher/auth/SignInPage';
 import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/teacher/DashboardPage';
+import LinksPage from './pages/teacher/LinksPage';
 import Header from './components/Header';
 import LandingHeader from './components/LandingHeader';
 import Footer from './components/Footer';
@@ -31,6 +32,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/links"
+              element={
+                <ProtectedRoute>
+                  <LinksPage />
                 </ProtectedRoute>
               }
             />

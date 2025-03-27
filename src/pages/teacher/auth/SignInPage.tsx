@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 interface SignInFormData {
   phone_number: string;
@@ -14,6 +14,7 @@ interface SignInResponse {
 
 const SignInPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState<SignInFormData>({
     phone_number: '',
     password: '',
@@ -22,6 +23,13 @@ const SignInPage: React.FC = () => {
   const [serverError, setServerError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  useEffect(() => {
+    const state = location.state as { error?: string };
+    if (state?.error) {
+      setServerError(state.error);
+    }
+  }, [location]);
 
   // Анимация фона
   useEffect(() => {
