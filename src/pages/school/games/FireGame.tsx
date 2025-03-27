@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DragDropContext, Droppable, Draggable, DroppableProvided, DraggableProvided, DropResult } from 'react-beautiful-dnd';
 
 interface UserData {
   id: string;
@@ -167,25 +166,14 @@ const FireGame: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [playerName, setPlayerName] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
-
   const [currentScene, setCurrentScene] = useState(0);
   const [showLevelComplete, setShowLevelComplete] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [canProceed, setCanProceed] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
-  const [videoEnded, setVideoEnded] = useState(false);
   const [showGameComplete, setShowGameComplete] = useState(false);
-  const [videoStartTime, setVideoStartTime] = useState<number | null>(null);
-  const [videoDuration, setVideoDuration] = useState<number | null>(null);
-  const [videoProgress, setVideoProgress] = useState(0);
-
-  const currentLevel = levels.find(level => level.id === gameState.currentLevel);
-
   const [items, setItems] = useState<Item[]>([]);
   const [selectedItems, setSelectedItems] = useState<{
     hazardous: Item[];
@@ -194,6 +182,8 @@ const FireGame: React.FC = () => {
     hazardous: [],
     safe: []
   });
+
+  const currentLevel = levels.find(level => level.id === gameState.currentLevel);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -291,7 +281,6 @@ const FireGame: React.FC = () => {
       setCurrentScene(0);
       setSelectedAnswers([]);
       setShowResults(false);
-      setVideoEnded(false);
       setShowGameComplete(false);
       setGameStarted(true);
     }
@@ -423,7 +412,6 @@ const FireGame: React.FC = () => {
     if (!questions) return;
 
     let score = 0;
-    let hasIncorrect = false;
 
     questions.forEach((question, index) => {
       const selectedAnswer = selectedAnswers[index];
@@ -431,7 +419,6 @@ const FireGame: React.FC = () => {
         score += 100;
       } else {
         score -= 100;
-        hasIncorrect = true;
       }
     });
 
@@ -443,35 +430,12 @@ const FireGame: React.FC = () => {
     setShowResults(true);
   };
 
-  const canCheckAnswers = () => {
-    const questions = currentLevel?.content.questions;
-    if (!questions) return false;
-    return selectedAnswers.length === questions.length;
-  };
-
-  const handleVideoStart = () => {
-    setVideoStartTime(Date.now());
-  };
-
-  const handleVideoProgress = (event: any) => {
-    if (event.target && event.target.getCurrentTime) {
-      setVideoProgress(event.target.getCurrentTime());
-    }
-  };
-
   const handleVideoEnd = () => {
-    setVideoEnded(true);
     setGameState(prev => ({
       ...prev,
       score: prev.score + 200,
       stars: prev.stars + 1
     }));
-  };
-
-  const handleVideoReady = (event: any) => {
-    if (event.target && event.target.getDuration) {
-      setVideoDuration(event.target.getDuration());
-    }
   };
 
   const handleGameComplete = () => {
@@ -679,7 +643,7 @@ const FireGame: React.FC = () => {
                 </div>
               ))}
               
-              {!showResults && canCheckAnswers() && (
+              {!showResults && (
                 <button
                   onClick={handleCheckAnswers}
                   className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
@@ -712,7 +676,6 @@ const FireGame: React.FC = () => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
                   className="absolute top-0 left-0 w-full h-full rounded-lg"
-                  onLoad={handleVideoReady}
                   onEnded={handleVideoEnd}
                 />
               </div>
