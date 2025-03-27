@@ -62,6 +62,27 @@ interface GameState {
   stars: number;
 }
 
+interface GamePlayer {
+  id: string;
+  game_id: string;
+  game_name: string;
+  game_code: string;
+  full_name: string;
+  stars: number;
+  score: number;
+  created_at: string;
+}
+
+interface GameLog {
+  request: {
+    url: string;
+    method: string;
+    body: any;
+  };
+  response: any;
+  error?: string;
+}
+
 const levels: Level[] = [
   {
     id: 1,
@@ -263,6 +284,11 @@ const FireGame: React.FC = () => {
   });
   const [selectedFirefighterItems, setSelectedFirefighterItems] = useState<FirefighterItem[]>([]);
   const [showItemDescription, setShowItemDescription] = useState<string | null>(null);
+  const [gamePlayer, setGamePlayer] = useState<GamePlayer | null>(null);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [gameLog, setGameLog] = useState<GameLog | null>(null);
+  const [showLog, setShowLog] = useState(false);
 
   const currentLevel = levels.find(level => level.id === gameState.currentLevel);
 
@@ -298,10 +324,12 @@ const FireGame: React.FC = () => {
   useEffect(() => {
     const savedState = localStorage.getItem('fireGameState');
     const savedPlayerName = localStorage.getItem('fireGamePlayerName');
+    const savedPlayer = localStorage.getItem('fireGamePlayer');
 
-    if (savedState && savedPlayerName) {
+    if (savedState && savedPlayerName && savedPlayer) {
       setGameState(JSON.parse(savedState));
       setPlayerName(savedPlayerName);
+      setGamePlayer(JSON.parse(savedPlayer));
       setGameStarted(true);
     }
   }, []);
@@ -334,8 +362,41 @@ const FireGame: React.FC = () => {
     }
   }, [gameStarted, currentLevel]);
 
-  const handleStartGame = () => {
-    if (playerName.trim()) {
+  const handleStartGame = async () => {
+    if (!playerName.trim() || !userData) return;
+
+    try {
+      const requestBody = {
+        code: userData.code,
+        full_name: playerName.trim()
+      };
+
+      const response = await fetch('https://zin-hack-25.antalkon.ru/api/v1/game/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Ошибка регистрации');
+      }
+
+      setGamePlayer(responseData);
+      setGameLog({
+        request: {
+          url: 'https://zin-hack-25.antalkon.ru/api/v1/game/register',
+          method: 'POST',
+          body: requestBody
+        },
+        response: responseData
+      });
+      
+      localStorage.setItem('fireGamePlayer', JSON.stringify(responseData));
+      
       setGameState({
         currentLevel: 1,
         score: 0,
@@ -347,6 +408,21 @@ const FireGame: React.FC = () => {
       setShowResults(false);
       setShowGameComplete(false);
       setGameStarted(true);
+      setRegistrationError(null);
+    } catch (err) {
+      setRegistrationError('Невозможно начать игру. Обратитесь в поддержку.');
+      setGameLog({
+        request: {
+          url: 'https://zin-hack-25.antalkon.ru/api/v1/game/register',
+          method: 'POST',
+          body: {
+            code: userData.code,
+            full_name: playerName.trim()
+          }
+        },
+        response: null,
+        error: err instanceof Error ? err.message : 'Неизвестная ошибка'
+      });
     }
   };
 
@@ -442,11 +518,19 @@ const FireGame: React.FC = () => {
 
     setTimeout(() => {
       setShowLevelComplete(false);
-      setGameState(prev => ({
-        ...prev,
-        currentLevel: prev.currentLevel + 1
-      }));
-      setCurrentScene(0);
+      
+      // Проверяем, является ли текущий уровень последним
+      if (gameState.currentLevel === levels.length) {
+        setShowGameComplete(true);
+        // Отправляем запрос после показа страницы завершения
+        handleFinalLevelComplete();
+      } else {
+        setGameState(prev => ({
+          ...prev,
+          currentLevel: prev.currentLevel + 1
+        }));
+        setCurrentScene(0);
+      }
     }, 2000);
   };
 
@@ -522,7 +606,7 @@ const FireGame: React.FC = () => {
     }));
   };
 
-  const handleGameComplete = () => {
+  const handleGameComplete = async () => {
     const confirmed = window.confirm(
       'Вы уверены, что хотите завершить игру? Весь прогресс будет потерян.'
     );
@@ -530,6 +614,7 @@ const FireGame: React.FC = () => {
     if (confirmed) {
       localStorage.removeItem('fireGameState');
       localStorage.removeItem('fireGamePlayerName');
+      localStorage.removeItem('fireGamePlayer');
       
       setGameState({
         currentLevel: 1,
@@ -565,6 +650,58 @@ const FireGame: React.FC = () => {
       }));
       setShowError(true);
       setErrorMessage('Неправильно! Проверь свой выбор еще раз.');
+    }
+  };
+
+  const handleFinalLevelComplete = async () => {
+    if (!gamePlayer) return;
+
+    try {
+      const requestBody = {
+        stars: gameState.stars,
+        score: gameState.score
+      };
+
+      const response = await fetch(`https://zin-hack-25.antalkon.ru/api/v1/game/finish/${gamePlayer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Ошибка сохранения');
+      }
+
+      setGameLog({
+        request: {
+          url: `https://zin-hack-25.antalkon.ru/api/v1/game/final/${gamePlayer.id}`,
+          method: 'PUT',
+          body: requestBody
+        },
+        response: responseData
+      });
+
+      localStorage.removeItem('fireGameState');
+      localStorage.removeItem('fireGamePlayerName');
+      localStorage.removeItem('fireGamePlayer');
+    } catch (err) {
+      setSaveError('Не удалось сохранить результат. Попробуйте еще раз.');
+      setGameLog({
+        request: {
+          url: `https://zin-hack-25.antalkon.ru/api/v1/game/final/${gamePlayer.id}`,
+          method: 'PUT',
+          body: {
+            stars: gameState.stars,
+            score: gameState.score
+          }
+        },
+        response: null,
+        error: err instanceof Error ? err.message : 'Неизвестная ошибка'
+      });
     }
   };
 
@@ -898,7 +1035,7 @@ const FireGame: React.FC = () => {
                   exit={{ opacity: 0, scale: 0.8 }}
                   className="fixed inset-0 flex items-center justify-center z-50"
                 >
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center max-w-2xl w-full mx-4">
                     <div className="text-6xl mb-4">🏆</div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       Поздравляем! Вы прошли игру!
@@ -909,9 +1046,42 @@ const FireGame: React.FC = () => {
                     <p className="text-gray-600 dark:text-gray-300 mb-4">
                       Заработано звёзд: {gameState.stars}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-300">
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">
                       Вы отлично справились с заданиями по пожарной безопасности!
                     </p>
+
+                    {gameLog && (
+                      <div className="mt-6">
+                        <div className={`p-4 rounded-lg mb-4 ${
+                          gameLog.error ? 'bg-red-100 dark:bg-red-900/30' : 'bg-green-100 dark:bg-green-900/30'
+                        }`}>
+                          <p className={gameLog.error ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'}>
+                            {gameLog.error ? 'Произошла ошибка при сохранении результатов' : 'Результаты успешно сохранены'}
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={() => setShowLog(!showLog)}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
+                        >
+                          {showLog ? 'Скрыть детальный лог' : 'Показать детальный лог'}
+                        </button>
+
+                        {showLog && (
+                          <div className="mt-4 text-left bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Запрос:</h4>
+                            <pre className="text-sm text-gray-700 dark:text-gray-300 mb-4 overflow-x-auto">
+                              {JSON.stringify(gameLog.request, null, 2)}
+                            </pre>
+                            
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Ответ:</h4>
+                            <pre className="text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
+                              {gameLog.error ? gameLog.error : JSON.stringify(gameLog.response, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -919,8 +1089,42 @@ const FireGame: React.FC = () => {
           </>
         )}
       </div>
+
+      {registrationError && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              {registrationError}
+            </h1>
+            <button
+              onClick={() => setRegistrationError(null)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+            <div className="text-4xl mb-4">⚠️</div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              {saveError}
+            </h1>
+            <button
+              onClick={() => setSaveError(null)}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default FireGame; // fdg
+export default FireGame;
