@@ -1,21 +1,28 @@
-# Этап 1: сборка приложения
-FROM node:18 AS builder
+# Этап сборки приложения
+FROM node:18-alpine
 
 WORKDIR /app
 
+# Копируем файлы зависимостей
 COPY package*.json ./
-RUN npm install
 
+# Устанавливаем зависимости
+RUN npm ci
+
+# Копируем исходный код
 COPY . .
+
+# Собираем приложение
 RUN npm run build
 
-# Этап 2: запуск через nginx
-FROM nginx:stable-alpine AS production
+# Создаем директорию для сборки
+RUN mkdir -p /build
 
-# Копируем собранный билд в директорию nginx
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Копируем собранные файлы в директорию сборки
+RUN cp -r dist/* /build/
 
+# Устанавливаем рабочую директорию
+WORKDIR /build
 
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Команда для проверки наличия файлов
+CMD ["ls", "-la"]
