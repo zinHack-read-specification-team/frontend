@@ -21,6 +21,7 @@ function App() {
           <Route path="/status" element={<LandingHeader />} />
           <Route path="/teacher/auth/sign-in" element={<LandingHeader />} />
           <Route path="/teacher/auth/sign-up" element={<LandingHeader />} />
+          <Route path="/school/games/*" element={<LandingHeader />} />
           <Route path="*" element={<Header />} />
         </Routes>
         <main className="flex-grow">

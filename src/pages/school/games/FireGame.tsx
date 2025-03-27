@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import GameHeader from '../../../components/GameHeader';
+import { useSearchParams } from 'react-router-dom';
 
 interface UserData {
   id: string;
@@ -23,6 +25,14 @@ interface Item {
   isHazardous: boolean;
 }
 
+interface FirefighterItem {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  isCorrect: boolean;
+}
+
 interface Question {
   text: string;
   options: string[];
@@ -34,12 +44,13 @@ interface Level {
   id: number;
   title: string;
   description: string;
-  type: 'quiz' | 'interactive' | 'drag-n-drop' | 'category-select' | 'video';
+  type: 'quiz' | 'interactive' | 'drag-n-drop' | 'category-select' | 'video' | 'firefighter-kit';
   content: {
     scenes?: Scene[];
     items?: Item[];
     questions?: Question[];
     videoId?: string;
+    firefighterItems?: FirefighterItem[];
   };
   isCompleted: boolean;
 }
@@ -148,13 +159,81 @@ const levels: Level[] = [
     description: 'Посмотри обучающее видео',
     type: 'video',
     content: {
-      videoId: 'abc123xyz' // Замените на реальный ID видео
+      videoId: 'cTpyJ8lQUZs'
+    },
+    isCompleted: false
+  },
+  {
+    id: 5,
+    title: 'Собери набор пожарного',
+    description: 'Выбери правильные предметы, которые нужны пожарному для работы',
+    type: 'firefighter-kit',
+    content: {
+      firefighterItems: [
+        {
+          id: 'helmet',
+          name: 'Каска',
+          description: 'Защищает голову пожарного от падающих предметов и высокой температуры',
+          image: '/assets/games/fire/helmet.png',
+          isCorrect: true
+        },
+        {
+          id: 'axe',
+          name: 'Топор',
+          description: 'Помогает пробираться через закрытые двери и преграды',
+          image: '/assets/games/fire/axe.png',
+          isCorrect: true
+        },
+        {
+          id: 'hose',
+          name: 'Пожарный рукав',
+          description: 'Подает воду для тушения пожара',
+          image: '/assets/games/fire/hose.png',
+          isCorrect: true
+        },
+        {
+          id: 'mask',
+          name: 'Противогаз',
+          description: 'Защищает органы дыхания от дыма',
+          image: '/assets/games/fire/mask.png',
+          isCorrect: true
+        },
+        {
+          id: 'gloves',
+          name: 'Перчатки',
+          description: 'Защищают руки от ожогов и травм',
+          image: '/assets/games/fire/gloves.png',
+          isCorrect: true
+        },
+        {
+          id: 'umbrella',
+          name: 'Зонтик',
+          description: 'Не является частью экипировки пожарного',
+          image: '/assets/games/fire/umbrella.png',
+          isCorrect: false
+        },
+        {
+          id: 'toy',
+          name: 'Игрушка',
+          description: 'Не является частью экипировки пожарного',
+          image: '/assets/games/fire/toy.png',
+          isCorrect: false
+        },
+        {
+          id: 'book',
+          name: 'Книга',
+          description: 'Не является частью экипировки пожарного',
+          image: '/assets/games/fire/book.png',
+          isCorrect: false
+        }
+      ]
     },
     isCompleted: false
   }
 ];
 
 const FireGame: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [gameState, setGameState] = useState<GameState>({
     currentLevel: 1,
     score: 0,
@@ -182,59 +261,47 @@ const FireGame: React.FC = () => {
     hazardous: [],
     safe: []
   });
+  const [selectedFirefighterItems, setSelectedFirefighterItems] = useState<FirefighterItem[]>([]);
+  const [showItemDescription, setShowItemDescription] = useState<string | null>(null);
 
   const currentLevel = levels.find(level => level.id === gameState.currentLevel);
 
+  // Проверка кода доступа при загрузке
   useEffect(() => {
     const checkAccess = async () => {
-      try {
-        // Получаем код из URL параметров
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-
-        if (!code) {
-          setError('Не указан код доступа');
-          setIsLoading(false);
-          return;
-        }
-
-        const response = await fetch(`https://zin-hack-25.antalkon.ru/api/v1/user/check-link/${code}`);
-        
-        if (!response.ok) {
-          setError('Нет доступа к этому интерактивному уроку');
-          setIsLoading(false);
-          return;
-        }
-
-        const data: UserData = await response.json();
-        
-        if (data.game_name !== 'fire') {
-          setError('Неправильная игра');
-          setIsLoading(false);
-          return;
-        }
-
-        setUserData(data);
+      const code = searchParams.get('code');
+      if (!code) {
+        setError('Код доступа не указан');
         setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://zin-hack-25.antalkon.ru/api/v1/user/check-link/${code}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        } else {
+          setError('У вас нет доступа к этой игре');
+        }
       } catch (err) {
         setError('Произошла ошибка при проверке доступа');
+      } finally {
         setIsLoading(false);
       }
     };
 
     checkAccess();
-  }, []);
+  }, [searchParams]);
 
   // Загрузка сохраненного состояния при старте
   useEffect(() => {
     const savedState = localStorage.getItem('fireGameState');
     const savedPlayerName = localStorage.getItem('fireGamePlayerName');
-    const savedUserData = localStorage.getItem('fireGameUserData');
 
-    if (savedState && savedPlayerName && savedUserData) {
+    if (savedState && savedPlayerName) {
       setGameState(JSON.parse(savedState));
       setPlayerName(savedPlayerName);
-      setUserData(JSON.parse(savedUserData));
       setGameStarted(true);
     }
   }, []);
@@ -244,11 +311,8 @@ const FireGame: React.FC = () => {
     if (gameStarted) {
       localStorage.setItem('fireGameState', JSON.stringify(gameState));
       localStorage.setItem('fireGamePlayerName', playerName);
-      if (userData) {
-        localStorage.setItem('fireGameUserData', JSON.stringify(userData));
-      }
     }
-  }, [gameStarted, gameState, playerName, userData]);
+  }, [gameStarted, gameState, playerName]);
 
   // Инициализация уровня
   useEffect(() => {
@@ -297,42 +361,62 @@ const FireGame: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
-        <div className="text-xl text-red-600 dark:text-red-400">{error}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+          <div className="text-4xl mb-4">🚫</div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+            {error}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Пожалуйста, проверьте код доступа и попробуйте снова.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 flex items-center justify-center">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md w-full">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Игра "Пожарная безопасность"
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Школа: {userData?.school_num}<br />
-            Класс: {userData?.class}
-          </p>
-          <div className="mb-6">
-            <label htmlFor="playerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Введите ваше имя и фамилию
-            </label>
-            <input
-              type="text"
-              id="playerName"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Иван Иванов"
-            />
+      <div className="min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800">
+        <GameHeader
+          level={gameState.currentLevel}
+          lives={gameState.lives}
+          stars={gameState.stars}
+          score={gameState.score}
+          onComplete={() => {}}
+        />
+        <div className="max-w-4xl mx-auto px-4 py-8 pt-20">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md mx-auto">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Игра "Пожарная безопасность"
+            </h1>
+            {userData && (
+              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                <p className="text-blue-700 dark:text-blue-300">
+                  Вы присоединились от школы "{userData.school_num}", класс "{userData.class}"
+                </p>
+              </div>
+            )}
+            <div className="mb-6">
+              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Введите ваше имя и фамилию
+              </label>
+              <input
+                type="text"
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Иван Иванов"
+              />
+            </div>
+            <button
+              onClick={handleStartGame}
+              disabled={!playerName.trim()}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Начать игру
+            </button>
           </div>
-          <button
-            onClick={handleStartGame}
-            disabled={!playerName.trim()}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Начать игру
-          </button>
         </div>
       </div>
     );
@@ -446,7 +530,6 @@ const FireGame: React.FC = () => {
     if (confirmed) {
       localStorage.removeItem('fireGameState');
       localStorage.removeItem('fireGamePlayerName');
-      localStorage.removeItem('fireGameUserData');
       
       setGameState({
         currentLevel: 1,
@@ -455,300 +538,386 @@ const FireGame: React.FC = () => {
         stars: 0
       });
       setPlayerName('');
-      setUserData(null);
       setGameStarted(false);
       setShowGameComplete(true);
     }
   };
 
+  const handleFirefighterItemClick = (item: FirefighterItem) => {
+    if (selectedFirefighterItems.find(i => i.id === item.id)) {
+      setSelectedFirefighterItems(prev => prev.filter(i => i.id !== item.id));
+    } else {
+      setSelectedFirefighterItems(prev => [...prev, item]);
+    }
+  };
+
+  const handleCheckFirefighterKit = () => {
+    const correctItems = currentLevel?.content.firefighterItems?.filter(item => item.isCorrect) || [];
+    const selectedCorrectItems = selectedFirefighterItems.filter(item => item.isCorrect);
+    const selectedIncorrectItems = selectedFirefighterItems.filter(item => !item.isCorrect);
+
+    if (selectedCorrectItems.length === correctItems.length && selectedIncorrectItems.length === 0) {
+      completeLevelWithReward();
+    } else {
+      setGameState(prev => ({
+        ...prev,
+        lives: prev.lives - 1
+      }));
+      setShowError(true);
+      setErrorMessage('Неправильно! Проверь свой выбор еще раз.');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 pt-16">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Game Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 mb-8">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                Уровень {gameState.currentLevel}
-              </div>
-              <div className="flex items-center space-x-1">
-                {[...Array(gameState.lives)].map((_, i) => (
-                  <span key={i} className="text-red-500 text-2xl">❤️</span>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-yellow-500 text-xl">
-                {[...Array(gameState.stars)].map((_, i) => (
-                  <span key={i}>⭐</span>
-                ))}
-              </div>
-              <div className="text-xl font-semibold text-blue-600 dark:text-blue-400">
-                {gameState.score} очков
-              </div>
-              <button
-                onClick={handleGameComplete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 transition-colors duration-200"
-              >
-                Завершить
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Level Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            {currentLevel?.title}
-          </h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            {currentLevel?.description}
-          </p>
-
-          {/* Interactive Story */}
-          {currentLevel?.type === 'interactive' && currentLevel.content.scenes && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center"
-            >
-              <img
-                src={currentLevel.content.scenes[currentScene].image}
-                alt="Scene"
-                className="mx-auto mb-6 rounded-lg shadow-lg max-w-md"
+    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800">
+      {gameStarted && (
+        <GameHeader
+          level={gameState.currentLevel}
+          lives={gameState.lives}
+          stars={gameState.stars}
+          score={gameState.score}
+          onComplete={handleGameComplete}
+        />
+      )}
+      <div className="max-w-4xl mx-auto px-4 py-8 pt-20">
+        {/* Game Content */}
+        {!gameStarted ? (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md mx-auto">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Игра "Пожарная безопасность"
+            </h1>
+            <div className="mb-6">
+              <label htmlFor="playerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Введите ваше имя и фамилию
+              </label>
+              <input
+                type="text"
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Иван Иванов"
               />
-              <p className="text-lg text-gray-800 dark:text-gray-200 mb-6">
-                {currentLevel.content.scenes[currentScene].text}
-              </p>
-              <button
-                onClick={handleNextScene}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
-              >
-                Далее
-              </button>
-            </motion.div>
-          )}
-
-          {/* Category Selection Game */}
-          {currentLevel?.type === 'category-select' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  Доступные предметы
-                </h3>
-                <div className="min-h-[200px] bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                  {items.map((item) => {
-                    const isSelected = selectedItem?.id === item.id || 
-                                    selectedItems.hazardous.find(i => i.id === item.id) || 
-                                    selectedItems.safe.find(i => i.id === item.id);
-                    return (
-                      <div
-                        key={item.id}
-                        className={`bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
-                          isSelected ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={() => !isSelected && setSelectedItem(item)}
-                      >
-                        {item.name}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
-                  Опасные предметы
-                </h3>
-                <div className="min-h-[200px] bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                  {selectedItems.hazardous.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm"
-                    >
-                      {item.name}
-                    </div>
-                  ))}
-                  {selectedItem && (
-                    <button
-                      onClick={() => handleCategorySelect('hazardous')}
-                      className="w-full p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
-                    >
-                      Поместить сюда
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">
-                  Безопасные предметы
-                </h3>
-                <div className="min-h-[200px] bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                  {selectedItems.safe.map((item) => (
-                    <div
-                      key={item.id}
-                      className="bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm"
-                    >
-                      {item.name}
-                    </div>
-                  ))}
-                  {selectedItem && (
-                    <button
-                      onClick={() => handleCategorySelect('safe')}
-                      className="w-full p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200"
-                    >
-                      Поместить сюда
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
-          )}
+            <button
+              onClick={handleStartGame}
+              disabled={!playerName.trim()}
+              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Начать игру
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Level Content */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                {currentLevel?.title}
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                {currentLevel?.description}
+              </p>
 
-          {/* Quiz */}
-          {currentLevel?.type === 'quiz' && currentLevel.content.questions && (
-            <div className="space-y-8">
-              {currentLevel.content.questions.map((question, index) => (
-                <div key={index} className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
-                  <h3 className="text-xl text-gray-900 dark:text-white mb-4">
-                    {question.text}
-                  </h3>
-                  <div className="grid grid-cols-1 gap-4">
-                    {question.options.map((option, optionIndex) => (
-                      <button
-                        key={optionIndex}
-                        onClick={() => handleQuizAnswer(index, optionIndex)}
-                        disabled={showResults}
-                        className={`p-4 bg-white dark:bg-gray-700 text-left rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors duration-200 ${
-                          showResults && optionIndex === question.correctAnswer ? 'bg-green-100 dark:bg-green-900/30' : ''
-                        } ${
-                          showResults && optionIndex === selectedAnswers[index] && optionIndex !== question.correctAnswer ? 'bg-red-100 dark:bg-red-900/30' : ''
-                        } ${
-                          selectedAnswers[index] === optionIndex ? 'ring-2 ring-blue-500' : ''
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
+              {/* Interactive Story */}
+              {currentLevel?.type === 'interactive' && currentLevel.content.scenes && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-center"
+                >
+                  <img
+                    src={currentLevel.content.scenes[currentScene].image}
+                    alt="Scene"
+                    className="mx-auto mb-6 rounded-lg shadow-lg max-w-md"
+                  />
+                  <p className="text-lg text-gray-800 dark:text-gray-200 mb-6">
+                    {currentLevel.content.scenes[currentScene].text}
+                  </p>
+                  <button
+                    onClick={handleNextScene}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
+                  >
+                    Далее
+                  </button>
+                </motion.div>
+              )}
+
+              {/* Category Selection Game */}
+              {currentLevel?.type === 'category-select' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                      Доступные предметы
+                    </h3>
+                    <div className="min-h-[200px] bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
+                      {items.map((item) => {
+                        const isSelected = selectedItem?.id === item.id || 
+                                        selectedItems.hazardous.find(i => i.id === item.id) || 
+                                        selectedItems.safe.find(i => i.id === item.id);
+                        return (
+                          <div
+                            key={item.id}
+                            className={`bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm cursor-pointer hover:shadow-md transition-shadow ${
+                              isSelected ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            onClick={() => !isSelected && setSelectedItem(item)}
+                          >
+                            {item.name}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  {showResults && selectedAnswers[index] !== question.correctAnswer && (
-                    <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                      <p className="text-red-700 dark:text-red-300">
-                        {question.explanation}
-                      </p>
+
+                  <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-lg">
+                    <h3 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4">
+                      Опасные предметы
+                    </h3>
+                    <div className="min-h-[200px] bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                      {selectedItems.hazardous.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm"
+                        >
+                          {item.name}
+                        </div>
+                      ))}
+                      {selectedItem && (
+                        <button
+                          onClick={() => handleCategorySelect('hazardous')}
+                          className="w-full p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+                        >
+                          Поместить сюда
+                        </button>
+                      )}
                     </div>
+                  </div>
+
+                  <div className="bg-green-100 dark:bg-green-900/30 p-4 rounded-lg">
+                    <h3 className="text-xl font-semibold text-green-600 dark:text-green-400 mb-4">
+                      Безопасные предметы
+                    </h3>
+                    <div className="min-h-[200px] bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                      {selectedItems.safe.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bg-white dark:bg-gray-700 p-3 mb-2 rounded shadow-sm"
+                        >
+                          {item.name}
+                        </div>
+                      ))}
+                      {selectedItem && (
+                        <button
+                          onClick={() => handleCategorySelect('safe')}
+                          className="w-full p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200"
+                        >
+                          Поместить сюда
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quiz */}
+              {currentLevel?.type === 'quiz' && currentLevel.content.questions && (
+                <div className="space-y-8">
+                  {currentLevel.content.questions.map((question, index) => (
+                    <div key={index} className="bg-gray-50 dark:bg-gray-700/50 p-6 rounded-lg">
+                      <h3 className="text-xl text-gray-900 dark:text-white mb-4">
+                        {question.text}
+                      </h3>
+                      <div className="grid grid-cols-1 gap-4">
+                        {question.options.map((option, optionIndex) => (
+                          <button
+                            key={optionIndex}
+                            onClick={() => handleQuizAnswer(index, optionIndex)}
+                            disabled={showResults}
+                            className={`p-4 bg-white dark:bg-gray-700 text-left rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors duration-200 ${
+                              showResults && optionIndex === question.correctAnswer ? 'bg-green-100 dark:bg-green-900/30' : ''
+                            } ${
+                              showResults && optionIndex === selectedAnswers[index] && optionIndex !== question.correctAnswer ? 'bg-red-100 dark:bg-red-900/30' : ''
+                            } ${
+                              selectedAnswers[index] === optionIndex ? 'ring-2 ring-blue-500' : ''
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ))}
+                      </div>
+                      {showResults && selectedAnswers[index] !== question.correctAnswer && (
+                        <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                          <p className="text-red-700 dark:text-red-300">
+                            {question.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {!showResults && (
+                    <button
+                      onClick={handleCheckAnswers}
+                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
+                    >
+                      Проверить ответы
+                    </button>
+                  )}
+
+                  {showResults && (
+                    <button
+                      onClick={completeLevelWithReward}
+                      className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
+                    >
+                      Перейти к следующему уровню
+                    </button>
                   )}
                 </div>
-              ))}
-              
-              {!showResults && (
-                <button
-                  onClick={handleCheckAnswers}
-                  className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
-                >
-                  Проверить ответы
-                </button>
               )}
 
-              {showResults && (
-                <button
-                  onClick={completeLevelWithReward}
-                  className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
-                >
-                  Перейти к следующему уровню
-                </button>
+              {/* Video Level */}
+              {currentLevel?.type === 'video' && (
+                <div className="space-y-6">
+                  <div className="text-center text-lg text-gray-700 dark:text-gray-300 mb-4">
+                    Посмотри мультфильм по пожарной безопасности, досмотри его до конца и получи 200 очков и звезду!
+                  </div>
+                  <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/cTpyJ8lQUZs?enablejsapi=1`}
+                      title="Пожарная безопасность"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute top-0 left-0 w-full h-full rounded-lg"
+                      onEnded={handleVideoEnd}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <button
+                      onClick={completeLevelWithReward}
+                      className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
+                    >
+                      Далее
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Firefighter Kit */}
+              {currentLevel?.type === 'firefighter-kit' && currentLevel.content.firefighterItems && (
+                <div className="space-y-8">
+                  <div className="text-center text-lg text-gray-700 dark:text-gray-300 mb-6">
+                    Выбери предметы, которые нужны пожарному для работы. Будь внимателен - некоторые предметы лишние!
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {currentLevel.content.firefighterItems.map((item) => {
+                      const isSelected = selectedFirefighterItems.some(i => i.id === item.id);
+                      
+                      return (
+                        <div
+                          key={item.id}
+                          className={`relative bg-white dark:bg-gray-700 rounded-lg p-4 cursor-pointer transition-all transform hover:scale-105 ${
+                            isSelected ? 'ring-4 ring-blue-500 dark:ring-blue-400' : ''
+                          }`}
+                          onClick={() => handleFirefighterItemClick(item)}
+                          onMouseEnter={() => setShowItemDescription(item.id)}
+                          onMouseLeave={() => setShowItemDescription(null)}
+                        >
+                          <div className="aspect-square relative">
+                            <img
+                              src={item.image}
+                              alt={item.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="text-center mt-2 font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </div>
+                          
+                          {showItemDescription === item.id && (
+                            <div className="absolute z-10 left-0 right-0 bottom-full mb-2 p-2 bg-black/80 text-white text-sm rounded-lg">
+                              {item.description}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-center mt-8">
+                    <button
+                      onClick={handleCheckFirefighterKit}
+                      disabled={selectedFirefighterItems.length === 0}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Проверить набор
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {showError && (
+                <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <p className="text-red-700 dark:text-red-300">
+                    {errorMessage}
+                  </p>
+                </div>
               )}
             </div>
-          )}
 
-          {/* Video Level */}
-          {currentLevel?.type === 'video' && (
-            <div className="space-y-6">
-              <div className="text-center text-lg text-gray-700 dark:text-gray-300 mb-4">
-                Посмотри мультфильм по пожарной безопасности, досмотри его до конца и получи 200 очков и звезду!
-              </div>
-              <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-                <iframe
-                  src={`https://www.youtube.com/embed/cTpyJ8lQUZs?enablejsapi=1`}
-                  title="Пожарная безопасность"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute top-0 left-0 w-full h-full rounded-lg"
-                  onEnded={handleVideoEnd}
-                />
-              </div>
-              <div className="text-center">
-                <button
-                  onClick={handleGameComplete}
-                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors duration-200"
+            {/* Level Complete Modal */}
+            <AnimatePresence>
+              {showLevelComplete && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="fixed inset-0 flex items-center justify-center z-50"
                 >
-                  Далее
-                </button>
-              </div>
-            </div>
-          )}
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+                    <div className="text-6xl mb-4">🎉</div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      Уровень пройден!
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      +100 очков и новая звезда!
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Error Message */}
-          {showError && (
-            <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
-              <p className="text-red-700 dark:text-red-300">
-                {errorMessage}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Level Complete Modal */}
-        <AnimatePresence>
-          {showLevelComplete && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed inset-0 flex items-center justify-center z-50"
-            >
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
-                <div className="text-6xl mb-4">🎉</div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Уровень пройден!
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  +100 очков и новая звезда!
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Game Complete Modal */}
-        <AnimatePresence>
-          {showGameComplete && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="fixed inset-0 flex items-center justify-center z-50"
-            >
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
-                <div className="text-6xl mb-4">🏆</div>
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Поздравляем! Вы прошли игру!
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Набрано очков: {gameState.score}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Заработано звёзд: {gameState.stars}
-                </p>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Вы отлично справились с заданиями по пожарной безопасности!
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {/* Game Complete Modal */}
+            <AnimatePresence>
+              {showGameComplete && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="fixed inset-0 flex items-center justify-center z-50"
+                >
+                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 text-center">
+                    <div className="text-6xl mb-4">🏆</div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      Поздравляем! Вы прошли игру!
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      Набрано очков: {gameState.score}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
+                      Заработано звёзд: {gameState.stars}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-300">
+                      Вы отлично справились с заданиями по пожарной безопасности!
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
     </div>
   );

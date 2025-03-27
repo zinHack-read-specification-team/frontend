@@ -78,7 +78,7 @@ const LinksPage: React.FC = () => {
       const data: CreateLinkResponse = await response.json();
 
       if (response.ok) {
-        setGeneratedLink(`https://test.org/${data.code}`);
+        setGeneratedLink(`https://zin-hack-25.antalkon.ru/school/games/${formData.game_name}?code=${data.code}`);
         setIsModalOpen(false);
         setIsSuccessModalOpen(true);
         fetchLinks(); // Обновляем список ссылок
@@ -187,7 +187,7 @@ const LinksPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       <button
-                        onClick={() => window.open(`https://test.org/${link.code}`, '_blank')}
+                        onClick={() => window.open(`https://zin-hack-25.antalkon.ru/school/games/${link.game_name}?code=${link.code}`, '_blank')}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                         title="Открыть ссылку"
                       >
@@ -232,12 +232,12 @@ const LinksPage: React.FC = () => {
                 <div className="flex items-center space-x-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                   <input
                     type="text"
-                    value={`https://test.org/${selectedLink.code}`}
+                    value={`https://zin-hack-25.antalkon.ru/school/games/${selectedLink.game_name}?code=${selectedLink.code}`}
                     readOnly
                     className="flex-1 bg-transparent text-gray-900 dark:text-white text-sm font-mono select-all"
                   />
                   <button
-                    onClick={() => copyToClipboard(`https://test.org/${selectedLink.code}`)}
+                    onClick={() => copyToClipboard(`https://zin-hack-25.antalkon.ru/school/games/${selectedLink.game_name}?code=${selectedLink.code}`)}
                     className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                     title="Копировать ссылку"
                   >
@@ -250,7 +250,7 @@ const LinksPage: React.FC = () => {
                 <div className="flex justify-center">
                   <div className="p-8 bg-white dark:bg-gray-700 rounded-xl shadow-lg">
                     <QRCodeSVG
-                      value={`https://test.org/${selectedLink.code}`}
+                      value={`https://zin-hack-25.antalkon.ru/school/games/${selectedLink.game_name}?code=${selectedLink.code}`}
                       size={300}
                       level="H"
                       includeMargin
@@ -265,7 +265,7 @@ const LinksPage: React.FC = () => {
 
                 <div className="flex justify-center space-x-4">
                   <button
-                    onClick={() => shareLink(`https://test.org/${selectedLink.code}`, selectedLink.school_num, selectedLink.class)}
+                    onClick={() => shareLink(`https://zin-hack-25.antalkon.ru/school/games/${selectedLink.game_name}?code=${selectedLink.code}`, selectedLink.school_num, selectedLink.class)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
                   >
                     Поделиться
