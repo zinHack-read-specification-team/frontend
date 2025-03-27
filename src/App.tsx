@@ -6,6 +6,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/teacher/DashboardPage';
 import LinksPage from './pages/teacher/LinksPage';
+import FireGame from './pages/school/games/FireGame';
 import Header from './components/Header';
 import LandingHeader from './components/LandingHeader';
 import Footer from './components/Footer';
@@ -43,6 +44,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/school/games/fire" element={<FireGame />} />
             <Route path="/" element={<HomePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
