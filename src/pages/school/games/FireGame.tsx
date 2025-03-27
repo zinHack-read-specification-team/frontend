@@ -923,4 +923,4 @@ const FireGame: React.FC = () => {
   );
 };
 
-export default FireGame; 
+export default FireGame; // fdg
