@@ -15,8 +15,10 @@ interface UserData {
 }
 
 interface Scene {
-  text: string;
   image: string;
+  text: string;
+  options?: string[];
+  correctOption?: number;
 }
 
 interface Item {
@@ -250,6 +252,72 @@ const levels: Level[] = [
       ]
     },
     isCompleted: false
+  },
+  {
+    id: 6,
+    title: 'Спасательная операция',
+    description: 'Помоги спасти людей из горящего дома!',
+    type: 'interactive',
+    content: {
+      scenes: [
+        {
+          image: '/assets/games/fire/final_scene_1.jpg',
+          text: 'Вы видите горящий дом. В окне на втором этаже заметны люди. Что нужно сделать в первую очередь?',
+          options: [
+            'Побежать в дом спасать людей',
+            'Позвонить в пожарную службу (01 или 112)',
+            'Попытаться потушить огонь водой из шланга',
+            'Спрятаться подальше'
+          ],
+          correctOption: 1
+        },
+        {
+          image: '/assets/games/fire/final_scene2.jpg',
+          text: 'Пожарные приехали! Теперь нужно эвакуировать людей. Как правильно это сделать?',
+          options: [
+            'Пользоваться лифтом',
+            'Бежать вниз по лестнице',
+            'Спуститься по пожарной лестнице',
+            'Прыгнуть из окна'
+          ],
+          correctOption: 2
+        },
+        {
+          image: '/assets/games/fire/final_scene3.webp',
+          text: 'В доме много дыма. Как правильно двигаться по задымленному помещению?',
+          options: [
+            'Бежать как можно быстрее',
+            'Идти в полный рост',
+            'Пригнуться к полу и двигаться медленно',
+            'Прыгать'
+          ],
+          correctOption: 2
+        },
+        {
+          image: '/assets/games/fire/final_scene4.webp',
+          text: 'Вы нашли человека без сознания. Что нужно сделать?',
+          options: [
+            'Оставить его и спасать себя',
+            'Попытаться разбудить',
+            'Вынести на свежий воздух',
+            'Дать воды'
+          ],
+          correctOption: 2
+        },
+        {
+          image: '/assets/games/fire/final_scene5.jpg',
+          text: 'Все спасены! Пожар потушен. Что нужно сделать дальше?',
+          options: [
+            'Вернуться в дом за вещами',
+            'Позвать всех на праздник',
+            'Проверить всех на наличие травм',
+            'Уйти домой'
+          ],
+          correctOption: 2
+        }
+      ]
+    },
+    isCompleted: false
   }
 ];
 
@@ -289,6 +357,7 @@ const FireGame: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [gameLog, setGameLog] = useState<GameLog | null>(null);
   const [showLog, setShowLog] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
 
   const currentLevel = levels.find(level => level.id === gameState.currentLevel);
 
@@ -500,10 +569,42 @@ const FireGame: React.FC = () => {
 
   const handleNextScene = () => {
     if (currentLevel?.type === 'interactive' && currentLevel.content.scenes) {
+      const currentSceneData = currentLevel.content.scenes[currentScene];
+      
+      if (currentSceneData.options) {
+        if (selectedOption === null) {
+          setShowError(true);
+          setErrorMessage('Пожалуйста, выберите один из вариантов ответа');
+          return;
+        }
+
+        if (selectedOption === currentSceneData.correctOption) {
+          setGameState(prev => ({
+            ...prev,
+            score: prev.score + 50
+          }));
+        } else {
+          setGameState(prev => ({
+            ...prev,
+            lives: prev.lives - 1
+          }));
+          setShowError(true);
+          setErrorMessage('Неправильный ответ! Попробуйте еще раз.');
+          return;
+        }
+      }
+
       if (currentScene < currentLevel.content.scenes.length - 1) {
         setCurrentScene(prev => prev + 1);
+        setSelectedOption(null);
+        setShowError(false);
       } else {
         completeLevelWithReward();
+        // Если это последний уровень, показываем окно завершения и сохраняем статистику
+        if (gameState.currentLevel === levels.length) {
+          setShowGameComplete(true);
+          handleFinalLevelComplete();
+        }
       }
     }
   };
@@ -771,11 +872,26 @@ const FireGame: React.FC = () => {
                   <p className="text-lg text-gray-800 dark:text-gray-200 mb-6">
                     {currentLevel.content.scenes[currentScene].text}
                   </p>
+                  {currentLevel.content.scenes[currentScene].options && (
+                    <div className="grid grid-cols-1 gap-4 mb-6">
+                      {currentLevel.content.scenes[currentScene].options.map((option, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setSelectedOption(index)}
+                          className={`p-4 bg-white dark:bg-gray-700 text-left rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors duration-200 ${
+                            selectedOption === index ? 'ring-2 ring-blue-500' : ''
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <button
                     onClick={handleNextScene}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors duration-200"
                   >
-                    Далее
+                    {currentLevel.content.scenes[currentScene].options ? 'Проверить ответ' : 'Далее'}
                   </button>
                 </motion.div>
               )}
