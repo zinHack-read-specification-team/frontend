@@ -11,6 +11,7 @@ import Header from './components/Header';
 import LandingHeader from './components/LandingHeader';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import LinksStats from './pages/teacher/LinksStats';
 
 function App() {
   return (
@@ -42,6 +43,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LinksPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/links/stats"
+              element={
+                <ProtectedRoute>
+                  <LinksStats />
                 </ProtectedRoute>
               }
             />
