@@ -1050,6 +1050,16 @@ const FireGame: React.FC = () => {
                       Вы отлично справились с заданиями по пожарной безопасности!
                     </p>
 
+                    <div className="flex justify-center gap-4 mb-6">
+                      <button
+                        onClick={() => window.open(`https://zin-hack-25.antalkon.ru/api/v1/game/certificate/${gamePlayer?.id}`, '_blank')}
+                        className="px-6 py-3 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 dark:bg-yellow-600 dark:hover:bg-yellow-700 transition-colors duration-200 flex items-center gap-2"
+                      >
+                        <span>🏆</span>
+                        Скачать сертификат
+                      </button>
+                    </div>
+
                     {gameLog && (
                       <div className="mt-6">
                         <div className={`p-4 rounded-lg mb-4 ${

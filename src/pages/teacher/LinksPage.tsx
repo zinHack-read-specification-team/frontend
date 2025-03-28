@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useNavigate } from 'react-router-dom';
 
 interface CreateLinkForm {
   game_name: string;
@@ -39,7 +38,6 @@ const LinksPage: React.FC = () => {
   const [generatedLink, setGeneratedLink] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchLinks();
@@ -142,10 +140,6 @@ const LinksPage: React.FC = () => {
     return games[name] || name;
   };
 
-  const handleViewStats = (code: string) => {
-    navigate(`/teacher/links/stat?code=${code}`);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -208,16 +202,6 @@ const LinksPage: React.FC = () => {
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v-4m6 0h-2m2 0v4m-6 0h-2m2 0v4m-6-4h2m-2 0v4m0-11v-4m0 0h2m-2 0v4m0 0h2m-2 0v4m6-4h2m-2 0v4m0-11v-4m0 0h2m-2 0v4m0 0h2m-2 0v4m6-4h2m-2 0v4m0-11v-4m0 0h2m-2 0v4m0 0h2m-2 0v4m6-4h2m-2 0v4" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleViewStats(link.code)}
-                        className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
-                        title="Просмотреть статистику"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 6.523 5.154 10.58 3.88c.442-1.23.757-2.568.92-3.93.163-1.362.48-2.697.843-4.065 1.262C3.557 5.325 1.75 7.14 0.54 9.354 0 10.326 0 11.34 0 12c0 1.34.024 2.685.075 4.026.05.972.123 1.92-.02 2.88.42 1.26.42 2.04 1.26 2.46 2.52 2.88 1.26.42 2.1.6 3.36.42 4.26-.18 1.26-1.2 2.1-2.4 2.52-3.6.42-1.2.6-2.4.42-3.6-.18-1.26-.42-2.1-.6-3.36-.42-4.26.18-1.26.42-2.1.6-3.36.42-4.26.18 1.26.02 2.4.02 3.6z" />
                         </svg>
                       </button>
                     </td>
